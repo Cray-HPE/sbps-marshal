@@ -1,0 +1,11 @@
+[Unit]
+Description=System service which reports information about a booted node state
+DefaultDependencies=no
+After=multi-user.target
+
+[Service]
+Type=simple
+ExecStart=/usr/lib/sbps-marshal/bin/sbps-marshal
+
+[Install]
+WantedBy=multi-user.target
