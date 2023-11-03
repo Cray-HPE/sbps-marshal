@@ -23,7 +23,7 @@
 #
 Name: @NAME@
 License: MIT
-Summary: System service which reports information about a booted node state
+Summary: System service that manages Squashfs images projected via iSCSI for IMS, PE, and other ancillary images similar to PE.
 Group: System/Management
 Version: @VERSION@
 Release: @RELEASE@
@@ -42,7 +42,7 @@ Requires: systemd
 %define install_dir /usr/lib/%{name}
 
 %description
-System service which reports information about a booted node state
+System service that manages Squashfs images projected via iSCSI for IMS, PE, and other ancillary images similar to PE.
 
 %prep
 %setup -q -n %{name}-@VERSION@-@RELEASE@

@@ -1,5 +1,5 @@
 [Unit]
-Description=System service which reports information about a booted node state
+Description=System service that manages Squashfs images projected via iSCSI for IMS, PE, and other ancillary images similar to PE.
 DefaultDependencies=no
 After=multi-user.target
 

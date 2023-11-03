@@ -1,5 +1,5 @@
 # sbps-marshal
-Agent to manage iSCSI projection via LIO based on Squashfs image inventories for scalable boot
+System service that manages Squashfs images projected via iSCSI for IMS, PE, and other ancillary images similar to PE.
 
 ## Local build
 Requirements:
