@@ -32,9 +32,6 @@ BuildArch: @ARCH@
 Vendor: HPE
 BuildRequires: python-rpm-macros
 BuildRequires: systemd-rpm-macros
-BuildRequires: python3-base
-Requires: python3-base
-Requires: python3-virtualenv
 Requires: systemd
 
 %define _unpackaged_files_terminate_build 0
