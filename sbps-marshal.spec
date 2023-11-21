@@ -33,13 +33,14 @@ Vendor: HPE
 BuildRequires: python-rpm-macros
 BuildRequires: systemd-rpm-macros
 BuildRequires: python3-base
-BuildRequires: python3-virtualenv
 Requires: python3-base
+Requires: python3-virtualenv
 Requires: systemd
 
 %define _unpackaged_files_terminate_build 0
 %define _systemdsvcdir /usr/lib/systemd/system
 %define install_dir /usr/lib/%{name}
+%define stage_dir /tmp/%{name}-wheels
 
 %description
 System service that manages Squashfs images projected via iSCSI for IMS, PE, and other ancillary images similar to PE.
@@ -48,20 +49,17 @@ System service that manages Squashfs images projected via iSCSI for IMS, PE, and
 %setup -q -n %{name}-@VERSION@-@RELEASE@
 
 %build
-virtualenv %{install_dir}
-%{install_dir}/bin/pip3 install --no-cache --requirement requirements.txt .
-%{install_dir}/bin/pip3 uninstall --no-cache --yes wheel setuptools pip
 
 %install
-mkdir -p %{buildroot}%{install_dir}/ %{buildroot}%{_systemdsvcdir}/
-rsync -av --exclude='*.pyc' --exclude='__pycache__' %{install_dir}/ %{buildroot}%{install_dir}/
+mkdir -p %{buildroot}%{stage_dir}/ %{buildroot}%{_systemdsvcdir}/
+cp wheels/*.whl %{buildroot}%{stage_dir}/
 cp etc/%{name}.service %{buildroot}%{_systemdsvcdir}/
 
 %clean
 rm -rf %{buildroot}
 
 %files
-%{install_dir}
+%config(missingok) %{stage_dir}
 %{_systemdsvcdir}/%{name}.service
 
 %pre
@@ -75,6 +73,9 @@ rm -rf %{buildroot}
 %else
 %systemd_post %{name}.service
 %endif
+virtualenv %{install_dir}
+%{install_dir}/bin/pip3 install %{stage_dir}/*.whl
+rm -Rf %{stage_dir}
 
 %preun
 %if 0%{?suse_version}
@@ -82,6 +83,7 @@ rm -rf %{buildroot}
 %else
 %systemd_preun %{name}.service
 %endif
+rm -Rf %{install_dir}
 
 %postun
 %if 0%{?suse_version}

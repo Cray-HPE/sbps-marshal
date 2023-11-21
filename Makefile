@@ -40,15 +40,14 @@ rpm-local:
 		sed -e "s/@RELEASE@/$(RELEASE)/g" | \
 		sed -e "s/@ARCH@/$(ARCH)/g" \
 		> $(BUILD_DIR)/SPECS/$(NAME).spec
+	zypper install -y python3-pip python3-wheel
+	pip3 wheel . -r ./requirements.txt -w $(BUILD_DIR)/wheels
 	tar -cvjf $(BUILD_DIR)/SOURCES/$(NAME_VERSION_RELEASE).tar.bz2 \
+		--transform 'flags=r;s,^$(BUILD_DIR)/,$(NAME_VERSION_RELEASE)/,' \
 		--transform 'flags=r;s,^\./,$(NAME_VERSION_RELEASE)/,' \
-		./marshal \
 		./etc \
-		./requirements.txt \
-		./setup.py \
-		./version.sh \
+		$(BUILD_DIR)/wheels \
 		./LICENSE
-	zypper install -y python3-virtualenv
 	rpmbuild -bb $(BUILD_DIR)/SPECS/$(NAME).spec --define "_topdir $(abspath $(BUILD_DIR))"
 	chown -R $${HOST_UID}:$${HOST_GID} $(BUILD_DIR)
 
