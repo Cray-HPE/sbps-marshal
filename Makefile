@@ -27,7 +27,7 @@ RELEASE ?= 1
 ARCH ?= noarch
 NAME_VERSION_RELEASE ?= $(NAME)-$(VERSION)-$(RELEASE)
 BUILD_DIR ?= dist/rpmbuild
-PYTHON_VERSION ?= 3.10
+PYTHON_MIN_VERSION ?= 3.9
 
 .PHONY: all
 all: rpm
@@ -39,11 +39,12 @@ rpm-local:
 		sed -e "s/@NAME@/$(NAME)/g" | \
 		sed -e "s/@VERSION@/$(VERSION)/g" | \
 		sed -e "s/@RELEASE@/$(RELEASE)/g" | \
-		sed -e "s/@ARCH@/$(ARCH)/g" \
+		sed -e "s/@ARCH@/$(ARCH)/g" | \
+		sed -e "s/@PYTHON_MIN_VERSION@/$(PYTHON_MIN_VERSION)/g" \
 		> $(BUILD_DIR)/SPECS/$(NAME).spec
 	zypper install -y python3-pip python3-wheel
-	pip3 download --python-version $(PYTHON_VERSION) --platform linux/amd64 --only-binary=:all: -d $(BUILD_DIR)/wheels -r ./requirements.txt
-	pip3 wheel . -w $(BUILD_DIR)/wheels
+	pip3 --no-cache-dir download --python-version $(PYTHON_MIN_VERSION) --platform linux/amd64 --only-binary=:all: -d $(BUILD_DIR)/wheels -r ./requirements.txt
+	pip3 --no-cache-dir wheel . -w $(BUILD_DIR)/wheels
 	tar -cvjf $(BUILD_DIR)/SOURCES/$(NAME_VERSION_RELEASE).tar.bz2 \
 		--transform 'flags=r;s,^$(BUILD_DIR)/,$(NAME_VERSION_RELEASE)/,' \
 		--transform 'flags=r;s,^\./,$(NAME_VERSION_RELEASE)/,' \
