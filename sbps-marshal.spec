@@ -88,7 +88,7 @@ python${python_installed} -m 'virtualenv' --version || error "virtualenv module 
 echo "Setting up Python virtual environment ..."
 python_installed=$(rpm -q -a | awk -F. '$1 ~ /^python3[0-9]*-base-3/ { print "3." $2 }' | sort -V | tail -1)
 python${python_installed} -m 'virtualenv' %{install_dir}
-%{install_dir}/bin/pip3 install %{stage_dir}/*.whl
+%{install_dir}/bin/pip3 install --no-index %{stage_dir}/*.whl
 rm -Rf %{stage_dir}
 
 %preun
