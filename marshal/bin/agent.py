@@ -37,6 +37,7 @@ import lib.auth as auth
 import lib.s3 as s3
 import lib.ims as ims
 import lib.lio as lio
+import subprocess
 
 def main():
 
@@ -186,12 +187,12 @@ def main():
             logging.info(f"ADD PE LIO fileio backstore: s3_path: {pe_s3fs_path}, s3fs_path: {pe_s3fs_path}, lun_wwn: {pe_wwn}, lun_product: [{pe_product}")
 
             try:
-                lio.create_fileio_backstore(product, pe_s3fs_path, wwn)
+                lio.create_fileio_backstore(pe_product, pe_s3fs_path, pe_wwn)
             except Exception as err:
                 logging.error(f"Unable to create LIO fileio backstore for {pe_s3fs_path}, received -> {str(err)}")
 
             try:
-                lio.create_lun(product, target_iqm)
+                lio.create_lun(pe_product, target_iqm)
             except Exception as err:
                 logging.error(f"Unable to create LIO LUN for {pe_s3fs_path}, received -> {str(err)}")
 
@@ -212,11 +213,14 @@ def main():
         except Exception as err:
             logging.error(f"Unable to retrieve a spire token, received -> {str(err)}")
             time.sleep(config.KV['SCAN_FREQUENCY'])
-            continue              
+            continue
 
         ims_url = urllib.parse.urljoin(config.KV['API_GATEWAY'], config.KV['IMS_URI'])
+        logging.info(f"DEBUG: IMS URL: {ims_url}")
+
         try:
             ims_images = list(ims.images(ims_url, spire_jwt, config.KV['IMS_TIMEOUT']))
+            
         except Exception as err:
             logging.error(f"Unable to list IMS images, received -> {str(err)}")
             time.sleep(config.KV['SCAN_FREQUENCY'])
@@ -279,7 +283,7 @@ def main():
                 logging.info(f"Attempting to remove {rootfs_s3_path}")
 
                 try:
-                    lio.delete_fileio_backstore(product)
+                    lio.delete_fileio_backstore(pe_product)
                 except Exception as err:
                     logging.error(f"Unable to remove LIO fileio backstore for {rootfs_s3_path}, received -> {str(err)}")            
 
