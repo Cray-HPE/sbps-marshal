@@ -1,0 +1,11 @@
+[Unit]
+Description=System service that manages Squashfs images projected via iSCSI for IMS, PE, and other ancillary images similar to PE.
+DefaultDependencies=no
+After=multi-user.target
+
+[Service]
+Type=simple
+ExecStart=/usr/lib/sbps-marshal/bin/sbps-marshal
+
+[Install]
+WantedBy=multi-user.target
