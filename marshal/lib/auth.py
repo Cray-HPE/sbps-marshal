@@ -22,33 +22,39 @@
 #  OTHER DEALINGS IN THE SOFTWARE.
 #
 
+"""Simple authN and authZ client module"""
+
 import json
 import os
 import subprocess
 
 import lib.config as config
 
+
 def get_s3fs_creds(file_path: str) -> tuple:
 
+    """Read Key ID/Access Key style S3 creds from file"""
+
     if not os.path.isfile(file_path):
-        return (None, None)
+        raise FileNotFoundError(f"{file_path} does not exist or is not a file.")
 
     with open(file_path, 'r') as f:
         key_id, key = f.read().strip().split(':')
         return key_id, key
     
-    return (None, None)
+    raise ValueError("Unable to parse credentials")
 
 def get_spire_svid_jwt() -> str:
 
-    """Attempt to retrive a Spire JWT for the SPBS agent workload"""
+    """Attempt to retrieve a Spire JWT for the SPBS agent workload and parse
+    out the bearer token"""
 
     ctx = [ config.KV['SPIRE_AGENT_PATH'],
             "api",
             "fetch",
             "jwt",
             "-audience",
-            config.KV['SPIRE_JWT_AUDIENCES'],
+            config.KV['SPIRE_JWT_AUDIENCE'],
             "-socketPath",
             config.KV['SPIRE_AGENT_SOCK_PATH'],
             "-output",

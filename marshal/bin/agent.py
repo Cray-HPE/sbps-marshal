@@ -39,6 +39,7 @@ import lib.ims as ims
 import lib.lio as lio
 import subprocess
 
+
 def main():
 
     parser = argparse.ArgumentParser()
@@ -61,8 +62,7 @@ def main():
 
     for k,v in config.KV.items():
         logging.info(f"config K:{k}, V: {str(v)}")
-    
-    ## TODO: Find a place to land agent lock, probably in systemd unit that wraps agent
+
 
     ## --------------------------------------------------------------
     ## Main Agent Loop
@@ -78,17 +78,18 @@ def main():
 
         # Attempt to load S3 credentials from file, and then create a client
 
-        s3_key_id, s3_access_key = auth.get_s3fs_creds(config.KV['S3_CREDENTIAL_FILE'])
-        if None in (s3_key_id, s3_access_key):
-            logging.error("Unable to load S3 credential from file, check file? aborting scan.")
+        try:
+            s3_key_id, s3_access_key = auth.get_s3fs_creds(config.KV['S3_CREDENTIAL_FILE'])
+        except Exception as err:
+            logging.error(f"Unable to retrieve S3 credentials, received -> {str(err)}")
             time.sleep(config.KV['SCAN_FREQUENCY'])
             continue
         
         try:
             s3_host = config.KV['S3_PROTO'] + '://' + config.KV['S3_HOST']
             s3_client = s3.get_s3_client(s3_host, 
-                                        s3_key_id, 
-                                        s3_access_key)
+                                         s3_key_id, 
+                                         s3_access_key)
         except Exception as err:
             logging.error(f"Unable to create S3 client, received -> {str(err)}")
             time.sleep(config.KV['SCAN_FREQUENCY'])
@@ -106,7 +107,7 @@ def main():
         logging.info(f"Counted {len(s3_objects)} S3 objects in {config.KV['S3_BUCKET']} bucket.")
 
         # Load and process LIO targets and LUNs from the target
-        # save configuraiton file (JSON)
+        # save configuration file (JSON)
 
         lio_save = None
         if os.path.isfile(config.KV['LIO_SAVE_FILE']):
@@ -115,24 +116,21 @@ def main():
         else:
             logging.error(f"LIO Save file does not exist at {config.KV['LIO_SAVE_FILE']}, aborting")
             time.sleep(config.KV['SCAN_FREQUENCY'])
-            continue     
+            continue
 
         target_iqm = lio.get_lio_target_iqm(lio_save)
         if target_iqm is None:
             logging.error(f"Unable to get server target IQM from {config.KV['LIO_SAVE_FILE']}, aborting")
             time.sleep(config.KV['SCAN_FREQUENCY'])
-            continue     
+            continue
 
         logging.info(f"Detected {target_iqm} as LIO server IQM")
 
         fileio_backstores = list(lio.extract_fileio_backstores(lio_save))
         logging.info(f"Counted {len(fileio_backstores)} LIO target fileio backstores")
 
-        target_luns = list(lio.extract_fileio_target_luns(lio_save))
-        logging.info(f"Counted {len(target_luns)} LIO target LUNs")
-
         # Walk through fileio backstores, remove any that do not exist in S3FS
-        # If we don't, attempting to add any *other* backstores will fail
+        # If we don't, attempting to add backstores may fail
 
         for fileio_backstore in fileio_backstores:
 
@@ -149,12 +147,25 @@ def main():
                 except Exception as err:
                     logging.error(f"Unable save LIO configuration, received -> {str(err)}")
 
+        # Reload the fileio backstores and load LUN state after stale S3FS purge
+                    
+        fileio_backstores = list(lio.extract_fileio_backstores(lio_save))
+        logging.info(f"Counted {len(fileio_backstores)} LIO target fileio backstores after stale S3FS purge")
+
+        target_luns = list(lio.extract_fileio_target_luns(lio_save))
+        logging.info(f"Counted {len(target_luns)} LIO target LUNs after stale S3FS purge")
+
+        # Track the WWN products for all valid (new or existing) backstores projected
+        # so we can attempt to clean them up after all projection modifications are 
+        # complete
+        valid_backstores = set()
+
         ## ----------------------------------------------------------
-        ## Programming Environment Syncronization Logic
+        ## Programming Environment Image Synchronization Logic
         ## ----------------------------------------------------------        
 
         pe_images = [ x for x in s3_objects if x['Key'].startswith("PE/") ]
-        logging.info(f"Counted {len(pe_images)} S3, PE images in boot-images bucket. ")
+        logging.info(f"Counted {len(pe_images)} S3, PE images in boot-images bucket. Starting PE image reconciliation.")
 
         for s3_object in pe_images:
 
@@ -167,6 +178,8 @@ def main():
 
             pe_product = lio.generate_lun_product(pe_s3_path)
             pe_wwn = lio.generate_lun_wwn(pe_s3_path)
+
+            valid_backstores.add(pe_product)
 
             # Check LIO saveconfig data to see if the device exists
 
@@ -182,28 +195,27 @@ def main():
                             found_backstore = True
 
             if found_backstore:
-                continue
+                continue # backstore already exists, assume LUN does as well
 
             logging.info(f"ADD PE LIO fileio backstore: s3_path: {pe_s3fs_path}, s3fs_path: {pe_s3fs_path}, lun_wwn: {pe_wwn}, lun_product: [{pe_product}")
 
             try:
                 lio.create_fileio_backstore(pe_product, pe_s3fs_path, pe_wwn)
             except Exception as err:
-                logging.error(f"Unable to create LIO fileio backstore for {pe_s3fs_path}, received -> {str(err)}")
+                logging.error(f"Unable to create PE LIO fileio backstore for {pe_s3fs_path}, received -> {str(err)}")
 
             try:
                 lio.create_lun(pe_product, target_iqm)
             except Exception as err:
-                logging.error(f"Unable to create LIO LUN for {pe_s3fs_path}, received -> {str(err)}")
+                logging.error(f"Unable to create PE LIO LUN for {pe_s3fs_path}, received -> {str(err)}")
 
             try:
                 lio.save_config()
             except Exception as err:
-                logging.error(f"Unable save LIO configuration, received -> {str(err)}")
-
+                logging.error(f"Unable save LIO configuration for PE, received -> {str(err)}")
 
         ## ----------------------------------------------------------
-        ## Process squashfs images for rootfs
+        ## Rootfs Image Synchronization Logic
         ## ----------------------------------------------------------
 
         # Attempt to query IMS API for its image inventory
@@ -215,49 +227,68 @@ def main():
             time.sleep(config.KV['SCAN_FREQUENCY'])
             continue
 
-        ims_url = urllib.parse.urljoin(config.KV['API_GATEWAY'], config.KV['IMS_URI'])
-        logging.info(f"DEBUG: IMS URL: {ims_url}")
+        ims_url = urllib.parse.urljoin(config.KV['API_GATEWAY'], 
+                                       config.KV['IMS_URI'])
+        
+        logging.info(f"Using IMS URL: {ims_url}")
 
         try:
-            ims_images = list(ims.images(ims_url, spire_jwt, config.KV['IMS_TIMEOUT']))
+            ims_images = list(ims.images(ims_url, 
+                                         spire_jwt, 
+                                         config.KV['IMS_TIMEOUT']))
             
         except Exception as err:
             logging.error(f"Unable to list IMS images, received -> {str(err)}")
             time.sleep(config.KV['SCAN_FREQUENCY'])
             continue     
         
-        logging.info(f"Counted {len(ims_images)} IMS images.")
-
-        # Begin reconciliation process indexed off of IMS rootfs images
-
-        ## TODO: Add heuristic to ingore NCN mgmt rootfs images
+        logging.info(f"Counted {len(ims_images)} IMS images. Starting rootfs image reconciliation.")
 
         for ims_image in ims_images:
 
-            ## TODO: Improve URL construction technique
-
-            # Retrieve the IMS manifest for the image and verify required attrtibutes
+            # Retrieve the IMS manifest for the image and verify required attributes
 
             try:
+                # "s3://boot-images/1fb58f4e-ad23-489b-89b7-95868fca7ee6/manifest.json"
                 m = ims_image["link"]["path"].replace("s3://" + config.KV['S3_BUCKET'] + "/", "")
+                ims_image_id = m.split("/")[0]
                 manifest = s3.get_s3_object(s3_client, config.KV['S3_BUCKET'], m)
                 manifest = json.load(manifest)
             except Exception as err:
                 logging.error(f"Unable to obtain manifest for IMS image {m}, received -> {str(err)}")
                 continue
 
+            # Attempt to retrieve the path and etag for the rootfs artifact cited
+            # in the manifest. If unable to retrieve either, will be unable to project.
+
             rootfs_s3_path = None
             rootfs_s3_etag = None
+
             for artifact in manifest["artifacts"]:
                 if artifact["type"] == "application/vnd.cray.image.rootfs.squashfs":
                     # Expects a normalized s3 path for link->path, e.g., 
                     # s3://boot-images/00d18ed1-20a3-4df2-affb-a88fda00b6f6/rootfs
                     rootfs_s3_path = artifact["link"]["path"]
                     rootfs_s3_etag = artifact["link"]["etag"]
-            
+
             if rootfs_s3_path is None or rootfs_s3_etag is None:
-                logging.error(f"Couldn't find rootfs artifact in {k}")
+                logging.error(f"path or etag missing in IMS manifest -> {m}")
                 continue
+
+            if config.KV['IMS_TAGGING']:
+
+                # Check to see if image is marked for projection
+                # If the metadata key does not exist, we assume that the 
+                # version of IMS in use doesn't support image tagging
+
+                if 'metadata' in ims_image.keys():
+                    if 'annotation' in ims_image['metadata'].keys():
+                        try:
+                            if ims_image['metadata']['annotation']['sbps-project'] != "true":
+                                logging.info(f"Image is not marked for projection in IMS {m}")
+                                continue
+                        except KeyError:
+                            pass
 
             # Calculate WWN (input) and product name
 
@@ -265,7 +296,7 @@ def main():
             rootfs_wwn = lio.generate_lun_wwn(digest_data)
             rootfs_product = lio.generate_lun_product(digest_data)
 
-            # Search for the rootfs image in S3
+            # Verify that the image exists in s3
 
             ims_in_s3 = False
             for s3_object in s3_objects:
@@ -274,29 +305,20 @@ def main():
                     if s3_object["ETag"].replace('"','') == rootfs_s3_etag:
                         ims_in_s3 = True
                         break
-            
-            # If the IMS object is not in S3, attempt to remove it from LIO
-
-            if not ims_in_s3:
-
+            else:
                 logging.info(f"Matching S3 object not found for {rootfs_s3_path} with etag {rootfs_s3_etag}")
-                logging.info(f"Attempting to remove {rootfs_s3_path}")
-
-                try:
-                    lio.delete_fileio_backstore(pe_product)
-                except Exception as err:
-                    logging.error(f"Unable to remove LIO fileio backstore for {rootfs_s3_path}, received -> {str(err)}")            
-
-                try:
-                    lio.save_config()
-                except Exception as err:
-                    logging.error(f"Unable save LIO configuration, received -> {str(err)}")
-
                 continue
 
-            # Verify the object exists in S3FS (local mount)
+            # Verify that the image exists in s3fs
+            
             s3fs_path = os.path.join(config.KV['SQUASHFS_S3FS_MOUNT'], 
-                                     rootfs_s3_path.replace("s3://" + config.KV['S3_BUCKET'] + "/", ""))
+                                rootfs_s3_path.replace("s3://" + config.KV['S3_BUCKET'] + "/", ""))
+            
+            if not os.path.isfile(s3fs_path):
+                logging.info(f"S3 object for rootfs not found in s3fs, path: {s3fs_path}")
+                continue
+
+            valid_backstores.add(rootfs_product)
 
             # Check LIO saveconfig data to see if the device exists
             # dev == s3fspath, name == product, wwn == wwn
@@ -308,12 +330,7 @@ def main():
                         if fileio_backstore["wwn"] ==rootfs_wwn:
                             found_backstore = True
 
-            ## TODO: should we guard against other S3FS corner cases here? 
-
-            if not os.path.exists(s3fs_path):
-
-                logging.info(f"No S3FS file found for {s3fs_path}")
-                continue
+            ## TODO: should we guard against other S3FS corner cases here, like transient cache state? 
 
             # If a backstore was not found for the rootfs image, add it and create a lun
 
@@ -330,6 +347,23 @@ def main():
                     lio.create_lun(rootfs_product, target_iqm)
                 except Exception as err:
                     logging.error(f"Unable to create LIO LUN for {rootfs_s3_path}, received -> {str(err)}")
+
+                try:
+                    lio.save_config()
+                except Exception as err:
+                    logging.error(f"Unable save LIO configuration, received -> {str(err)}")
+
+        # If fileio backstores exist that we didn't scan as valid at this point, 
+        # attempt to remove them
+        for fileio_backstore in fileio_backstores:
+            if fileio_backstore["name"] not in valid_backstores:
+
+                logging.info(f"Attempting to remove fileio backstore {fileio_backstore} as it wasn't validated in this scan period")
+
+                try:
+                    lio.delete_fileio_backstore(fileio_backstore["name"])
+                except Exception as err:
+                    logging.error(f"Unable to remove LIO fileio backstore for {fileio_backstore["name"]}, received -> {str(err)}")            
 
                 try:
                     lio.save_config()
