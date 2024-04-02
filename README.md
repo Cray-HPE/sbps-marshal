@@ -10,7 +10,7 @@ A relatively simple software agent that:
 
 You must use an external service management facility (e.g., systemd) to ensure that precisely one instance of the agent is running on a host. 
 
-SBPS only supports the projection of read-only LUNs. 
+SBPS support is limited to the the projection of read-only LUNs in LIO, using filio backstores. 
 
 ## IMS and S3 API Requests
 
