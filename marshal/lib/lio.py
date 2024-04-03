@@ -1,7 +1,7 @@
 #
 #  MIT License
 #
-#  (C) Copyright 2020-2023 Hewlett Packard Enterprise Development LP
+#  (C) Copyright 2023-2024 Hewlett Packard Enterprise Development LP
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a
 #  copy of this software and associated documentation files (the "Software"),
@@ -22,16 +22,23 @@
 #  OTHER DEALINGS IN THE SOFTWARE.
 #
 
+"""Module with LIO helpers"""
+
 import hashlib
 import subprocess
 
 import lib.config as config
 
+from _collections_abc import Iterable
+
+
+# 'Constants' to support SCSI WWN manipulation
 VENDOR_LENGTH_BYTES=16
 WWN_LENGTH_BYTES=32
 
-
 def sha224_hexdigest(message: str) -> str:
+
+    """Return a SHA224 as a hexidecimal string"""
 
     return hashlib.sha224(bytes(message.encode('utf-8'))).hexdigest()
 
@@ -40,15 +47,20 @@ def sha224_hexdigest(message: str) -> str:
 
 def generate_lun_wwn(message: str) -> str:
 
+    """Generate a LUN WWN based on a SHA224 digest"""
+
     return sha224_hexdigest(message)[0:WWN_LENGTH_BYTES-1]
 
 def generate_lun_product(message: str) -> str:
+    
+    """Generate a LUN Product based a SHA224 digest"""
 
     return sha224_hexdigest(message)[0:VENDOR_LENGTH_BYTES-1]
 
-## TODO: replace generator typehint with generic iterable class
+def extract_fileio_backstores(target_config: dict) -> Iterable:
 
-def extract_fileio_backstores(target_config: dict) -> list:
+
+    """Return configured LIO backing stores from configuration file"""
 
     for stor_obj in target_config["storage_objects"]:
         if stor_obj["plugin"] == "fileio":
@@ -59,9 +71,9 @@ def extract_fileio_backstores(target_config: dict) -> list:
                 "wwn" : stor_obj["wwn"]
             }
 
-## TODO: replace generator typehint with generic iterable class
+def extract_fileio_target_luns(target_config: dict) -> Iterable:
 
-def extract_fileio_target_luns(target_config: dict) -> list:
+    """Return configured LIO LUNs from configuration file"""
     
     ## TODO: add defensive code to guard against cases with multiple TPGS
 
@@ -74,7 +86,9 @@ def extract_fileio_target_luns(target_config: dict) -> list:
                     "storage_object" : lun["storage_object"]
                 }
 
-def get_lio_target_iqm(target_config: dict) -> str:
+def get_lio_target_iqn(target_config: dict) -> str:
+
+    """Return the servers configured WWN (IQN)"""
 
     try:
         return target_config["targets"][0]["wwn"]
@@ -85,22 +99,30 @@ def get_lio_target_iqm(target_config: dict) -> str:
 
 def create_fileio_backstore(vendor: str, file_path: str, wwn: str):
     
+    """Try to create a fileio backstore using targetcli"""
+
     ctx = f"/backstores/fileio create {vendor} {file_path} 0 false true {wwn}"
     subprocess.run([config.KV['TARGETCLI_BIN'], ctx], check=True)
 
-def create_lun(vendor: str, iqm: str):
+def create_lun(vendor: str, iqn: str):
+
+    """Try to create a LUN using targetcli, backstore must already exist"""
     
-    ctx = f"/iscsi/{iqm}/tpg1/luns create /backstores/fileio/{vendor}"
+    ctx = f"/iscsi/{iqn}/tpg1/luns create /backstores/fileio/{vendor}"
     subprocess.run([config.KV['TARGETCLI_BIN'], ctx], check=True)
 
 # targetcli: delete name [save] 
 
-def delete_fileio_backstore(vendor: str):
+def delete_fileio_backstore(product: str):
     
-    ctx = f"/backstores/fileio delete {vendor}"
+    """Try to delete a backstore using targetcli"""
+    
+    ctx = f"/backstores/fileio delete {product}"
     subprocess.run([config.KV['TARGETCLI_BIN'], ctx], check=True)
 
 def save_config():
+    
+    """Try to save the targetcli configuration"""
 
     ctx = f"saveconfig"
     subprocess.run([config.KV['TARGETCLI_BIN'], ctx], check=True)

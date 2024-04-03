@@ -1,7 +1,7 @@
 #
 #  MIT License
 #
-#  (C) Copyright 2020-2023 Hewlett Packard Enterprise Development LP
+#  (C) Copyright 2023-2024 Hewlett Packard Enterprise Development LP
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a
 #  copy of this software and associated documentation files (the "Software"),
@@ -22,12 +22,16 @@
 #  OTHER DEALINGS IN THE SOFTWARE.
 #
 
+"""Module containing a few s3 helper functions, built upon boto3"""
+
 import boto3
 import datetime
 import json
 
 
 def get_s3_client(s3_url: str, s3_key_id: str, s3_access_key: str) -> boto3.client:
+
+    """Create and return boto3 session"""
     
     session = boto3.Session()
     return session.client(
@@ -39,6 +43,8 @@ def get_s3_client(s3_url: str, s3_key_id: str, s3_access_key: str) -> boto3.clie
     )
 
 def list_bucket_objects(s3_client: boto3.client, bucket: str) -> list:
+
+    """List objects in a target S3 bucket"""
 
     def datetime_handler(x):
         if isinstance(x, datetime.datetime):
@@ -58,6 +64,8 @@ def list_bucket_objects(s3_client: boto3.client, bucket: str) -> list:
 
 
 def get_s3_object(s3_client: boto3.client, bucket: str, key: str) -> bytes:
+
+    """Download an S3 object provided by key, from bucket"""
 
     response = s3_client.get_object(Bucket=bucket, Key=key)
     return response['Body']
