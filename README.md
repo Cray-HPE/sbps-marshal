@@ -2,7 +2,7 @@
 
 A relatively simple software agent that:
 
-* Manages Cray Systems Management (CSM) Image Management Service (IMS) and S3 rootfs Squashfs image projections (read-only) via iSCSI (LIO)
+* Manages Cray Systems Management (CSM), Image Management Service (IMS) and S3 rootfs Squashfs image projections (read-only) via iSCSI (LIO)
 * Manages Cray Systems Management (CSM) programming environment Squashfs image projections (read-only) via iSCSI
 * Is designed to run on CSM Worker nodes
 * Leverages Spire/SPIFFE for authentication and authorization

@@ -86,9 +86,9 @@ def extract_fileio_target_luns(target_config: dict) -> Iterable:
                     "storage_object" : lun["storage_object"]
                 }
 
-def get_lio_target_iqm(target_config: dict) -> str:
+def get_lio_target_iqn(target_config: dict) -> str:
 
-    """Return the servers configured WWN (IQM)"""
+    """Return the servers configured WWN (IQN)"""
 
     try:
         return target_config["targets"][0]["wwn"]
@@ -104,11 +104,11 @@ def create_fileio_backstore(vendor: str, file_path: str, wwn: str):
     ctx = f"/backstores/fileio create {vendor} {file_path} 0 false true {wwn}"
     subprocess.run([config.KV['TARGETCLI_BIN'], ctx], check=True)
 
-def create_lun(vendor: str, iqm: str):
+def create_lun(vendor: str, iqn: str):
 
     """Try to create a LUN using targetcli, backstore must already exist"""
     
-    ctx = f"/iscsi/{iqm}/tpg1/luns create /backstores/fileio/{vendor}"
+    ctx = f"/iscsi/{iqn}/tpg1/luns create /backstores/fileio/{vendor}"
     subprocess.run([config.KV['TARGETCLI_BIN'], ctx], check=True)
 
 # targetcli: delete name [save] 

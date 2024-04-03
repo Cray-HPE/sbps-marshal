@@ -118,13 +118,13 @@ def main():
             time.sleep(config.KV['SCAN_FREQUENCY'])
             continue
 
-        target_iqm = lio.get_lio_target_iqm(lio_save)
-        if target_iqm is None:
-            logging.error(f"Unable to get server target IQM from {config.KV['LIO_SAVE_FILE']}, aborting")
+        target_iqn = lio.get_lio_target_iqn(lio_save)
+        if target_iqn is None:
+            logging.error(f"Unable to get server target IQN from {config.KV['LIO_SAVE_FILE']}, aborting")
             time.sleep(config.KV['SCAN_FREQUENCY'])
             continue
 
-        logging.info(f"Detected {target_iqm} as LIO server IQM")
+        logging.info(f"Detected {target_iqn} as LIO server IQN")
 
         fileio_backstores = list(lio.extract_fileio_backstores(lio_save))
         logging.info(f"Counted {len(fileio_backstores)} LIO target fileio backstores")
@@ -205,14 +205,14 @@ def main():
                 logging.error(f"Unable to create PE LIO fileio backstore for {pe_s3fs_path}, received -> {str(err)}")
 
             try:
-                lio.create_lun(pe_product, target_iqm)
+                lio.create_lun(pe_product, target_iqn)
             except Exception as err:
                 logging.error(f"Unable to create PE LIO LUN for {pe_s3fs_path}, received -> {str(err)}")
 
             try:
                 lio.save_config()
             except Exception as err:
-                logging.error(f"Unable save LIO configuration for PE, received -> {str(err)}")
+                logging.error(f"Unable save to LIO configuration for PE, received -> {str(err)}")
 
         ## ----------------------------------------------------------
         ## Rootfs Image Synchronization Logic
@@ -344,7 +344,7 @@ def main():
                     logging.error(f"Unable to create LIO fileio backstore for {rootfs_s3_path}, received -> {str(err)}")
 
                 try:
-                    lio.create_lun(rootfs_product, target_iqm)
+                    lio.create_lun(rootfs_product, target_iqn)
                 except Exception as err:
                     logging.error(f"Unable to create LIO LUN for {rootfs_s3_path}, received -> {str(err)}")
 
@@ -368,7 +368,7 @@ def main():
                 try:
                     lio.save_config()
                 except Exception as err:
-                    logging.error(f"Unable save LIO configuration, received -> {str(err)}")
+                    logging.error(f"Unable to save LIO configuration, received -> {str(err)}")
 
         logging.info("END SCAN")
         time.sleep(config.KV['SCAN_FREQUENCY'])
