@@ -363,7 +363,7 @@ def main():
                 try:
                     lio.delete_fileio_backstore(fileio_backstore["name"])
                 except Exception as err:
-                    logging.error(f"Unable to remove LIO fileio backstore for {fileio_backstore["name"]}, received -> {str(err)}")            
+                    logging.error(f"Unable to remove LIO fileio backstore for {fileio_backstore['name']}, received -> {str(err)}")            
 
                 try:
                     lio.save_config()
