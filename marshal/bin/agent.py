@@ -71,7 +71,6 @@ def main():
     while True:
 
         logging.info("START SCAN")
-
         ## ----------------------------------------------------------
         ## Pre-flight for all types of image projection
         ## ----------------------------------------------------------        
@@ -243,7 +242,6 @@ def main():
             continue     
         
         logging.info(f"Counted {len(ims_images)} IMS images. Starting rootfs image reconciliation.")
-
         for ims_image in ims_images:
 
             # Retrieve the IMS manifest for the image and verify required attributes
@@ -274,7 +272,7 @@ def main():
             if rootfs_s3_path is None or rootfs_s3_etag is None:
                 logging.error(f"path or etag missing in IMS manifest -> {m}")
                 continue
-
+            
             if config.KV['IMS_TAGGING']:
 
                 # Check to see if image is marked for projection
@@ -282,9 +280,12 @@ def main():
                 # version of IMS in use doesn't support image tagging
 
                 if 'metadata' in ims_image.keys():
-                    if 'annotation' in ims_image['metadata'].keys():
+                    if 'sbps-project' not in ims_image['metadata'].keys():
+                        logging.info(f"No sbps-project key value, so image is not marked for projection")
+                        continue
+                    else:
                         try:
-                            if ims_image['metadata']['annotation']['sbps-project'] != "true":
+                            if ims_image['metadata']['sbps-project'] != "true":
                                 logging.info(f"Image is not marked for projection in IMS {m}")
                                 continue
                         except KeyError:

@@ -26,7 +26,6 @@
 
 import os
 
-
 KV = dict()
 _env_prefix = 'SBPS_MARSHAL_'
 
@@ -52,14 +51,15 @@ else:
     KV['IMS_URI'] = 'apis/ims/v3/images'
 
 # Toggle to use IMS image tagging or not
-
+# Value is set True by default, need to revisit
 if os.environ.get(_env_prefix + 'IMS_TAGGING') is not None:
+    KV['IMS_TAGGING'] = os.environ.get(_env_prefix + 'IMS_TAGGING')
     if KV['IMS_TAGGING'] == "true":
         KV['IMS_TAGGING'] = True
     else:
         KV['IMS_TAGGING'] = False
 else:
-    KV['IMS_TAGGING'] = False
+    KV['IMS_TAGGING'] = True 
 
 # IMS request timeout to use (seconds)
 
