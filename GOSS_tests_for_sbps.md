@@ -19,20 +19,17 @@ The goss script which determines on which nodes the script 'iscsi_sbps_sanity.sh
 Ensure 'goss-servers' systemd service is running on all the nodes (master and worker):
 If not, restart the goss-server on all the worker nodes configured with iSCSI.
 
-    ```bash
     systemctl restart goss-servers.service 
     systemctl status goss-servers.service
-    ```
+    
     Expected output:
 
-    ```bash
     â goss-servers.service - goss-servers
          Loaded: loaded (/etc/systemd/system/goss-servers.service; disabled; vendor preset: disabled)
         Active: active (running) since Tue 2024-01-16 18:47:59 UTC; 1 day 18h ago
         Main PID: 1630316 (bash)
         Tasks: 682
         CGroup: /system.slice/goss-servers.service
-    ```
 
 Two ways to run the goss tests: 
 
@@ -44,7 +41,6 @@ This will run the test on all the corresponding worker nodes which are configure
 
 Method #2: Run on Individual node (worker):
 
-    ```bash
     Set the below GOSS environment variable
    
     export GOSS_BASE=/opt/cray/tests/install/ncn
@@ -52,5 +48,5 @@ Method #2: Run on Individual node (worker):
     Then run the below command:
 
     goss -g /opt/cray/tests/install/ncn/tests/goss-validate-iscsi-sbps-config.yaml validate
-    ```
-    This command will run the test on the individual node on which this was run where iSCSI is confgured.
+    
+This command will run the test on the individual node on which this was run where iSCSI is confgured.
