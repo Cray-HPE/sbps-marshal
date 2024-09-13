@@ -87,7 +87,7 @@ else:
 if os.environ.get(_env_prefix + 'S3_CREDENTIAL_FILE') is not None:
     KV['S3_CREDENTIAL_FILE'] = os.environ.get(_env_prefix + 'S3_CREDENTIAL_FILE')
 else:
-    KV['S3_CREDENTIAL_FILE'] = '/root/.iscsi-sbps.s3fs'
+    KV['S3_CREDENTIAL_FILE'] = '/root/.ims.s3fs'
 
 # S3 bucket to use to verify Squashfs images
     
