@@ -38,7 +38,7 @@ import lib.s3 as s3
 import lib.ims as ims
 import lib.lio as lio
 import subprocess
-
+import shutil
 
 def main():
 
@@ -112,6 +112,13 @@ def main():
         if os.path.isfile(config.KV['LIO_SAVE_FILE']):
             with open(config.KV['LIO_SAVE_FILE'], 'r') as f:
                 lio_save = json.load(f)
+        elif os.path.isdir(config.KV['LIO_SAVE_FILE']):
+            if os.path.isfile('/etc/target/saveconfig.json/saveconfig.json.temp'):
+                shutil.move('/etc/target/saveconfig.json/saveconfig.json.temp', '/etc/target/')
+                os.rmdir('/etc/target/saveconfig.json/')
+                os.rename('/etc/target/saveconfig.json.temp', '/etc/target/saveconfig.json')
+                with open('/etc/target/saveconfig.json', 'r') as f:
+                    lio_save = json.load(f)
         else:
             logging.error(f"LIO Save file does not exist at {config.KV['LIO_SAVE_FILE']}, aborting")
             time.sleep(config.KV['SCAN_FREQUENCY'])
