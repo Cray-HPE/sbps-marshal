@@ -108,7 +108,7 @@ else:
 if os.environ.get(_env_prefix + 'SPIRE_AGENT_PATH') is not None:
     KV['SPIRE_AGENT_PATH'] = os.environ.get(_env_prefix + 'SPIRE_AGENT_PATH')
 else:
-    KV['SPIRE_AGENT_PATH'] = '/usr/bin/sbps-marshal-spire-agent'
+    KV['SPIRE_AGENT_PATH'] = '/opt/cray/cray-spire/sbps-marshal-spire-agent'
 
 # The Spire JWT Audience to use
 
