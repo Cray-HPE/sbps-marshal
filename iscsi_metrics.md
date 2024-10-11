@@ -38,7 +38,7 @@ four commands list above can be retrieved via the methods below:
 
 Go to the URL  `https://vmselect.cmn.<system_name>.hpc.amslabs.hpecorp.net/select/0/prometheus/vmui`
 
-For example, if the system name is odin, use:
+For example, if the system name is fanta, use:
 
     https://vmselect.cmn.fanta.hpc.amslabs.hpecorp.net/select/0/prometheus/vmui 
 
