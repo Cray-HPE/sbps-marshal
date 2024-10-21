@@ -53,9 +53,13 @@ This command will run the test on the individual node on which this was run wher
 
 ## Steps to view the test logs
 
-When the test is run on master/pit node (method #1), the logs would be available at below location on the system:
+When the test is run on master/pit node (method #1), logs would be available at the below location on the system(s):
+On the master node, the high level tests results log will be available and on the individual worker node, we can see
+the detailed test results log.
 
-On the master node:/opt/cray/tests/install/logs/print_goss_json_results/
+On the master node:
+
+    /opt/cray/tests/install/logs/print_goss_json_results/
 
 e.g.
     /opt/cray/tests/install/logs/print_goss_json_results/20241002_133551.159786-1959742-YNsI6heE/out
@@ -75,13 +79,15 @@ Node: ncn-w001
 
 This high level test result would be available for all the worker nodes.
 
-The individual worker node will have detailed log of the test run at the below location on that particular node:
+On the worker node:
 
-/opt/cray/tests/install/logs/iscsi_cps_sanity
+The individual worker node will have detailed log of the test run at the below location:
+
+    /opt/cray/tests/install/logs/iscsi_cps_sanity
 
 e.g.
 
     /opt/cray/tests/install/logs/iscsi_cps_sanity/20241014_110514_223323798_211125.log
 
-When the test is run on individual node (method #2), the test log would be available only on the individual node
-at the above mentioned location i.e /opt/cray/tests/install/logs/iscsi_cps_sanity. 
+Note: When the test is run on the individual worker node (method #2), the test log would be available
+only on the individual node at the above mentioned location i.e /opt/cray/tests/install/logs/iscsi_cps_sanity.
