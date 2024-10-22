@@ -62,12 +62,13 @@ On the master node:
     /opt/cray/tests/install/logs/print_goss_json_results/
 
 e.g.
+
     /opt/cray/tests/install/logs/print_goss_json_results/20241002_133551.159786-1959742-YNsI6heE/out
 
 The above log will have collated high level test results of all the goss tests run on the system,
 we should look for iscsi goss tests as below: 
 
-```bash
+```
 Result: PASS
 Source: http://ncn-w001.hmn:8997/ncn-healthcheck-worker
 Test Name: iscsi boot content projection
