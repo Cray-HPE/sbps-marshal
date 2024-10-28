@@ -35,6 +35,7 @@ Expected output:
 Due to this goss tests were not run. Run below from master node to restart 'goss-servers' on all worker nodes at one go:
 
      worker_nodes=$(grep -oP "(ncn-w\d+)" /etc/hosts | sort -u | tr -t '\n' ',')
+     worker_nodes=${worker_nodes%,}
      pdsh -S -b -w $worker_nodes 'systemctl restart goss-servers'
 
 Two ways to run the goss tests:
