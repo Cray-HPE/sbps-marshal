@@ -32,7 +32,7 @@ Expected output:
         CGroup: /system.slice/goss-servers.service
 
 **Note:** In CSM 1.6.0, it is required to restart 'goss-servers' service as the 'goss-servers' is not getting restarted after the upgrade.
-Due to this goss tests were not run. Run below from master to restart 'goss-servers' on all worker nodes at one go:
+Due to this goss tests were not run. Run below from master node to restart 'goss-servers' on all worker nodes at one go:
 
      worker_nodes=$(grep -oP "(ncn-w\d+)" /etc/hosts | sort -u | tr -t '\n' ',')
      pdsh -S -b -w $worker_nodes 'systemctl restart goss-servers'
