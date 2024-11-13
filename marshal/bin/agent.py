@@ -263,7 +263,9 @@ def main():
             rootfs_s3_etag = None
 
             for artifact in manifest["artifacts"]:
-                if artifact["type"] == "application/vnd.cray.image.rootfs.squashfs":
+                if artifact["type"] == "application/vnd.cray.image.rootfs.squashfs" and \
+                    'link' in artifact and artifact['link'] is not None and \
+                    'path' in artifact['link'] and 'etag' in artifact['link']:
                     # Expects a normalized s3 path for link->path, e.g., 
                     # s3://boot-images/00d18ed1-20a3-4df2-affb-a88fda00b6f6/rootfs
                     rootfs_s3_path = artifact["link"]["path"]
