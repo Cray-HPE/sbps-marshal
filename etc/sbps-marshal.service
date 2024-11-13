@@ -6,6 +6,8 @@ After=multi-user.target
 [Service]
 Type=simple
 ExecStart=/usr/lib/sbps-marshal/bin/sbps-marshal
+Restart=on-failure
+RestartSec=180s
 
 [Install]
 WantedBy=multi-user.target
