@@ -131,13 +131,10 @@ def save_config():
 def fileio_size(product: str, size: int):
    
     if product["size"] == size:
-        logging.info(f"Asha:lio: fileio_backstore size = {product["size"]} and s3_object size = {size}")
         found_backstore = True
 
     else:
         try:
-            logging.info(f"Asha:lio: fileio_backstore size = {product["size"]} and s3_object size = {size}")
-            #found_backstore = False
             delete_fileio_backstore(product["name"])
         except Exception as err:
             logging.error(
