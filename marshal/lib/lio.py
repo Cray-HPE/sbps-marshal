@@ -26,6 +26,7 @@
 
 import hashlib
 import subprocess
+import logging
 
 import lib.config as config
 
@@ -126,3 +127,25 @@ def save_config():
 
     ctx = f"saveconfig"
     subprocess.run([config.KV['TARGETCLI_BIN'], ctx], check=True)
+
+def fileio_size(product: str, size: int):
+   
+    if product["size"] == size:
+        logging.info(f"Asha:lio: fileio_backstore size = {product["size"]} and s3_object size = {size}")
+        found_backstore = True
+
+    else:
+        try:
+            logging.info(f"Asha:lio: fileio_backstore size = {product["size"]} and s3_object size = {size}")
+            #found_backstore = False
+            delete_fileio_backstore(product["name"])
+        except Exception as err:
+            logging.error(
+                f"Unable to remove LIO fileio backstore for {product["dev"]}, received -> {str(err)}")
+        
+        try:
+            save_config()
+        except Exception as err:
+            logging.error(f"Unable to save LIO configuration, received -> {str(err)}")
+
+    return found_backstore

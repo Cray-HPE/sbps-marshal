@@ -177,6 +177,7 @@ def main():
 
             pe_product = lio.generate_lun_product(pe_s3_path)
             pe_wwn = lio.generate_lun_wwn(pe_s3_path)
+            size = s3_object['Size']
 
             valid_backstores.add(pe_product)
 
@@ -191,14 +192,16 @@ def main():
                 if fileio_backstore["dev"] == pe_s3fs_path:
                     if fileio_backstore["name"] == pe_product:
                         if fileio_backstore["wwn"] == pe_wwn:
-                            found_backstore = True
+                            found_backstore = lio.fileio_size(fileio_backstore, size)        
+                            logging.info(f"Asha: found_backstore for PE = {found_backstore}")
 
             if found_backstore:
                 continue # backstore already exists, assume LUN does as well
 
             logging.info(f"ADD PE LIO fileio backstore: s3_path: {pe_s3fs_path}, s3fs_path: {pe_s3fs_path}, lun_wwn: {pe_wwn}, lun_product: [{pe_product}")
-
+       
             try:
+
                 lio.create_fileio_backstore(pe_product, pe_s3fs_path, pe_wwn)
             except Exception as err:
                 logging.error(f"Unable to create PE LIO fileio backstore for {pe_s3fs_path}, received -> {str(err)}")
@@ -326,12 +329,15 @@ def main():
             # Check LIO saveconfig data to see if the device exists
             # dev == s3fspath, name == product, wwn == wwn
 
+            size_r = s3_object['Size']
+            logging.info(f"Asha: rootfs image synchronisation s3_object size = {size_r}") 
             found_backstore = False
             for fileio_backstore in fileio_backstores:
                 if fileio_backstore["dev"] == s3fs_path:
                     if fileio_backstore["name"] == rootfs_product:
                         if fileio_backstore["wwn"] ==rootfs_wwn:
-                            found_backstore = True
+                            found_backstore = lio.fileio_size(fileio_backstore, size_r)
+                            logging.info(f"Asha: found_backstore for PE = {found_backstore}")
 
             ## TODO: should we guard against other S3FS corner cases here, like transient cache state? 
 
@@ -378,3 +384,25 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+def fileio_size(product: str, size: int):
+
+    if product["size"] == size:
+        logging.info(f"Asha:lio: fileio_backstore size = {product["size"]} and s3_object size = {size}")
+        found_backstore = True
+
+    else:
+        try:
+            logging.info(f"Asha:lio: fileio_backstore size = {product["size"]} and s3_object size = {size}")
+            lio.delete_fileio_backstore(product["name"])
+        except Exception as err:
+            logging.error(
+                f"Unable to remove LIO fileio backstore for {product["dev"]}, received -> {str(err)}")
+
+        try:
+            lio.save_config()
+        except Exception as err:
+            logging.error(f"Unable to save LIO configuration, received -> {str(err)}")
+
+        return found_backstore
+
