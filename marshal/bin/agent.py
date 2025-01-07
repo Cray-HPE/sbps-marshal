@@ -177,6 +177,7 @@ def main():
 
             pe_product = lio.generate_lun_product(pe_s3_path)
             pe_wwn = lio.generate_lun_wwn(pe_s3_path)
+            size = s3_object['Size']
 
             valid_backstores.add(pe_product)
 
@@ -191,13 +192,12 @@ def main():
                 if fileio_backstore["dev"] == pe_s3fs_path:
                     if fileio_backstore["name"] == pe_product:
                         if fileio_backstore["wwn"] == pe_wwn:
-                            found_backstore = True
+                            found_backstore = lio.fileio_size(fileio_backstore, size)        
 
             if found_backstore:
                 continue # backstore already exists, assume LUN does as well
 
             logging.info(f"ADD PE LIO fileio backstore: s3_path: {pe_s3fs_path}, s3fs_path: {pe_s3fs_path}, lun_wwn: {pe_wwn}, lun_product: [{pe_product}")
-
             try:
                 lio.create_fileio_backstore(pe_product, pe_s3fs_path, pe_wwn)
             except Exception as err:
@@ -326,12 +326,13 @@ def main():
             # Check LIO saveconfig data to see if the device exists
             # dev == s3fspath, name == product, wwn == wwn
 
+            size_r = s3_object['Size']
             found_backstore = False
             for fileio_backstore in fileio_backstores:
                 if fileio_backstore["dev"] == s3fs_path:
                     if fileio_backstore["name"] == rootfs_product:
                         if fileio_backstore["wwn"] ==rootfs_wwn:
-                            found_backstore = True
+                            found_backstore = lio.fileio_size(fileio_backstore, size_r)
 
             ## TODO: should we guard against other S3FS corner cases here, like transient cache state? 
 
