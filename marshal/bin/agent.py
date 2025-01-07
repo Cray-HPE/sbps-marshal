@@ -198,9 +198,7 @@ def main():
                 continue # backstore already exists, assume LUN does as well
 
             logging.info(f"ADD PE LIO fileio backstore: s3_path: {pe_s3fs_path}, s3fs_path: {pe_s3fs_path}, lun_wwn: {pe_wwn}, lun_product: [{pe_product}")
-       
             try:
-
                 lio.create_fileio_backstore(pe_product, pe_s3fs_path, pe_wwn)
             except Exception as err:
                 logging.error(f"Unable to create PE LIO fileio backstore for {pe_s3fs_path}, received -> {str(err)}")

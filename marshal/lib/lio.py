@@ -134,6 +134,7 @@ def fileio_size(product: str, size: int):
         found_backstore = True
 
     else:
+        found_backstore = False
         try:
             delete_fileio_backstore(product["name"])
         except Exception as err:
