@@ -27,9 +27,8 @@
 import json
 import os
 import subprocess
-
+import logging
 import lib.config as config
-
 
 def get_s3fs_creds(file_path: str) -> tuple:
 
@@ -63,10 +62,17 @@ def get_spire_svid_jwt() -> str:
     p = subprocess.run(ctx, check=True, capture_output=True)
 
     entries = json.loads(p.stdout)
+
+    file = open("/etc/cray/xname", "r")
+    xname = file.read().rstrip() 
+    file.close()
+
     for e in entries:
         if 'svids' in e.keys():
             for svid in e['svids']:
                 if svid['spiffe_id'] == "spiffe://shasta/ncn/workload/sbps-marshal":
                     return svid['svid']
-    
+                if svid['spiffe_id'] == f"spiffe://shasta/ncn/{xname}/workload/sbps-marshal":
+                    return svid['svid']
+ 
     raise ValueError("Could not find valid SVID")
