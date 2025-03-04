@@ -27,7 +27,7 @@
 import json
 import os
 import subprocess
-import logging
+
 import lib.config as config
 
 def get_s3fs_creds(file_path: str) -> tuple:
