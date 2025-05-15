@@ -1,7 +1,7 @@
 #
 #  MIT License
 #
-#  (C) Copyright 2023-2024 Hewlett Packard Enterprise Development LP
+#  (C) Copyright 2025 Hewlett Packard Enterprise Development LP
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a
 #  copy of this software and associated documentation files (the "Software"),
@@ -38,7 +38,7 @@ import lib.s3 as s3
 import lib.ims as ims
 import lib.lio as lio
 import subprocess
-
+import sys
 
 def main():
 
@@ -63,7 +63,8 @@ def main():
     for k,v in config.KV.items():
         logging.info(f"config K:{k}, V: {str(v)}")
 
-
+    check_node_config()
+     
     ## --------------------------------------------------------------
     ## Main Agent Loop
     ## --------------------------------------------------------------
@@ -376,6 +377,62 @@ def main():
 
         logging.info("END SCAN")
         time.sleep(config.KV['SCAN_FREQUENCY'])
+
+# First check whether the node is having 'iscsi=sbps' label. If its there,
+# ensure 'target' service is running and proceed further for projecting images.
+# Else tear down all the projections and stop 'target' service.
+
+def check_node_config():
+    
+    hostname = subprocess.check_output(['hostname']).decode().strip()
+ 
+    if not hostname:
+        logging.error(f"hostname retrieval failed, exiting..")
+        sys.exit(1)
+
+    cmd = "kubectl get nodes --selector='iscsi=sbps,kubernetes.io/hostname="+hostname+"' -o jsonpath='{.items[*].metadata.name}' --kubeconfig /etc/kubernetes/admin.conf"
+
+    iscsi_nodes, _ = run_command(cmd)
+
+    if iscsi_nodes:
+        logging.info(f"Node has iSCSI label: {iscsi_nodes}")
+        tgt_status, _  = run_command("systemctl is-active target.service")
+
+        if tgt_status != "active":
+            logging.info(f"Target service is not active, starting")
+            subprocess.run(["systemctl", "start", "target.service"], check=True)
+    else:
+        logging.info(f"Node does not have iSCSI label, so tear down all lun configurations if any and exit")
+
+        tgt_status, _ = run_command("systemctl is-active target.service")
+
+        if tgt_status == "active":
+            logging.info(f"Target service is active, stopping it")
+            subprocess.run(["systemctl", "stop", "target.service"], check=True)
+
+        marshal_status, _ = run_command("systemctl is-active sbps-marshal.service")
+
+        if marshal_status == "active":
+            logging.info(f"sbps-marshal service, stopping it")
+            subprocess.run(["systemctl", "stop", "sbps-marshal.service"], check=True)
+
+        sys.exit(1)
+
+def run_command(cmd):
+    try:
+        result = subprocess.run(
+            cmd,
+            shell=True,
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            universal_newlines=True,
+        )
+        return result.stdout.strip(), result.returncode
+    except subprocess.CalledProcessError as err:
+        if err.stderr.strip():
+            return err.stderr.strip(), err.returncode
+        return err.stdout.strip(), err.returncode
 
 if __name__ == "__main__":
     main()
