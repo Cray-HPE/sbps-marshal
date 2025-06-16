@@ -1,7 +1,7 @@
 #
 #  MIT License
 #
-#  (C) Copyright 2023-2024 Hewlett Packard Enterprise Development LP
+#  (C) Copyright 2025 Hewlett Packard Enterprise Development LP
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a
 #  copy of this software and associated documentation files (the "Software"),
@@ -147,3 +147,34 @@ def fileio_size(product: str, size: int):
             logging.error(f"Unable to save LIO configuration, received -> {str(err)}")
 
     return found_backstore
+
+def disable_target(iqn: str):
+
+    ctx = f"/iscsi/{iqn}/tpg1 disable"
+    subprocess.run([config.KV['TARGETCLI_BIN'], ctx], check=True)
+
+def enable_target(iqn: str):
+
+    ctx = f"/iscsi/{iqn}/tpg1 enable"
+    subprocess.run([config.KV['TARGETCLI_BIN'], ctx], check=True)
+
+def get_tgtp_status(iqn: str):
+
+    try:
+        # Run the targetcli info command and capture output
+        cmd = f"targetcli /iscsi/{iqn}/tpg1 info"
+
+        result = subprocess.run(cmd, shell=True, check=True,
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+        # Extract the status (second word of first line)
+        output = result.stdout.decode('utf-8').strip()
+        if output:
+            first_line = output.splitlines()[0]
+            tgt_status = first_line.split()[1]
+        return tgt_status
+
+    except subprocess.CalledProcessError as e:
+        logging.error(f"Error running targetcli: {e.stderr}")
+        return None
+
