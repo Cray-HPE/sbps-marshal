@@ -69,7 +69,7 @@ def main():
         logging.error(f"hostname retrieval failed, exiting..")
         sys.exit(1)
 
-    # Retrieving IQN as /etc/target/saveconfig.son will not exist initially
+    # Retrieving IQN as /etc/target/saveconfig.json will not exist initially
     IQN = f'iqn.2023-06.csm.iscsi:{hostname}'
 
     ## --------------------------------------------------------------
@@ -94,7 +94,6 @@ def main():
                 subprocess.run(["systemctl", "start", "target.service"], check=True)
         else:
             logging.info(f"Node does not have iSCSI label, disabling the target port")
-
             lio.disable_target(IQN)
             time.sleep(config.KV['SCAN_FREQUENCY'])
             continue
@@ -406,7 +405,6 @@ def main():
         logging.info("END SCAN")
 
         tgtp_status = lio.get_tgtp_status(target_iqn)
-
         if tgtp_status != 'True':
             logging.info(f"Target port is disabled, enabling the same")
             lio.enable_target(target_iqn)
