@@ -1,7 +1,7 @@
 #
 #  MIT License
 #
-#  (C) Copyright 2025 Hewlett Packard Enterprise Development LP
+#  (C) Copyright 2023-2025 Hewlett Packard Enterprise Development LP
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a
 #  copy of this software and associated documentation files (the "Software"),
@@ -69,6 +69,9 @@ def main():
         logging.error(f"hostname retrieval failed, exiting..")
         sys.exit(1)
 
+    # Retrieving IQN as /etc/target/saveconfig.json will not exist initially
+    IQN = f'iqn.2023-06.csm.iscsi:{hostname}'
+
     ## --------------------------------------------------------------
     ## Main Agent Loop
     ## --------------------------------------------------------------
@@ -90,14 +93,8 @@ def main():
                 logging.info(f"Target service is not active, starting")
                 subprocess.run(["systemctl", "start", "target.service"], check=True)
         else:
-            logging.info(f"Node does not have iSCSI label, stopping the target service")
-
-            tgt_status, _ = run_command("systemctl is-active target.service")
-
-            if tgt_status == "active":
-                logging.info(f"Target service is active, stopping it")
-                subprocess.run(["systemctl", "stop", "target.service"], check=True)
-
+            logging.info(f"Node does not have iSCSI label, disabling the target port")
+            lio.disable_target(IQN)
             time.sleep(config.KV['SCAN_FREQUENCY'])
             continue
 
@@ -406,6 +403,12 @@ def main():
                     logging.error(f"Unable to save LIO configuration, received -> {str(err)}")
 
         logging.info("END SCAN")
+
+        tgtp_status = lio.get_tgtp_status(target_iqn)
+        if tgtp_status != 'True':
+            logging.info(f"Target port is disabled, enabling the same")
+            lio.enable_target(target_iqn)
+
         time.sleep(config.KV['SCAN_FREQUENCY'])
 
 def run_command(cmd):
