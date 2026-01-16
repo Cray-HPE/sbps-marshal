@@ -197,5 +197,5 @@ def tgt_service_restart():
         tgt_restart_done = True
 
     except subprocess.CalledProcessError as e:
-        logging.error(f"Error in restarting target.servic: {e.stderr}")
+        logging.error(f"Error in restarting target.service: {e.stderr}")
         return None
