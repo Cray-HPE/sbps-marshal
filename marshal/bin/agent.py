@@ -1,7 +1,7 @@
 #
 #  MIT License
 #
-#  (C) Copyright 2023-2025 Hewlett Packard Enterprise Development LP
+#  (C) Copyright 2023-2026 Hewlett Packard Enterprise Development LP
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a
 #  copy of this software and associated documentation files (the "Software"),
@@ -404,10 +404,16 @@ def main():
 
         logging.info("END SCAN")
 
+        lio.first_scan_complete = True
+
         tgtp_status = lio.get_tgtp_status(target_iqn)
         if tgtp_status != 'True':
             logging.info(f"Target port is disabled, enabling the same")
             lio.enable_target(target_iqn)
+
+        # Restart the target service only once after the 1st SCAN
+        if lio.first_scan_complete and not lio.tgt_restart_done:
+            lio.tgt_service_restart()
 
         time.sleep(config.KV['SCAN_FREQUENCY'])
 

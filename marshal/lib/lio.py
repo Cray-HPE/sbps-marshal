@@ -1,7 +1,7 @@
 #
 #  MIT License
 #
-#  (C) Copyright 2023-2025 Hewlett Packard Enterprise Development LP
+#  (C) Copyright 2023-2026 Hewlett Packard Enterprise Development LP
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a
 #  copy of this software and associated documentation files (the "Software"),
@@ -36,6 +36,11 @@ from _collections_abc import Iterable
 # 'Constants' to support SCSI WWN manipulation
 VENDOR_LENGTH_BYTES=16
 WWN_LENGTH_BYTES=32
+
+# Flags to support restarting the target.service after first scan of marshal agent,
+# mainly for rebuild scenarios.
+first_scan_complete = False
+tgt_restart_done = False
 
 def sha224_hexdigest(message: str) -> str:
 
@@ -178,3 +183,19 @@ def get_tgtp_status(iqn: str):
         logging.error(f"Error running targetcli: {e.stderr}")
         return None
 
+# Restart target.service on first scan completion of the marshal agent
+def tgt_service_restart():
+    try:
+        result = subprocess.run(
+            ["systemctl", "restart", "target.service"],
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            universal_newlines=True
+        )
+        logging.info(f"target.service restarted successfully")
+        tgt_restart_done = True
+
+    except subprocess.CalledProcessError as e:
+        logging.error(f"Error in restarting target.service: {e.stderr}")
+        return None
