@@ -27,7 +27,8 @@
 import hashlib
 import subprocess
 import logging
-
+import json
+import os
 import lib.config as config
 
 from _collections_abc import Iterable
@@ -37,10 +38,8 @@ from _collections_abc import Iterable
 VENDOR_LENGTH_BYTES=16
 WWN_LENGTH_BYTES=32
 
-# Flags to support restarting the target.service after first scan of marshal agent,
-# mainly for rebuild scenarios.
-first_scan_complete = False
-tgt_restart_done = False
+STATE_FILE = "/var/lib/sbps-marshal/state.json"
+state = None  # no default
 
 def sha224_hexdigest(message: str) -> str:
 
@@ -183,8 +182,32 @@ def get_tgtp_status(iqn: str):
         logging.error(f"Error running targetcli: {e.stderr}")
         return None
 
-# Restart target.service on first scan completion of the marshal agent
+def load_state():
+
+    """ Get current status of the target.service restart """
+
+    global state
+    if os.path.exists(STATE_FILE):
+        with open(STATE_FILE, "r") as f:
+            state = json.load(f)
+    else:
+        state = {"initialized": False}
+
+def save_state():
+
+    """ Save current status of the target.service restart """
+
+    # ensure parent directory exists
+    parent_dir = os.path.dirname(STATE_FILE)
+    os.makedirs(parent_dir, exist_ok=True)
+
+    # write state to file
+    with open(STATE_FILE, "w") as f:
+        json.dump(state, f)
+
 def tgt_service_restart():
+
+    """ Restart target.service on first scan completion of the sbps marshal agent """
     try:
         result = subprocess.run(
             ["systemctl", "restart", "target.service"],
@@ -194,7 +217,9 @@ def tgt_service_restart():
             universal_newlines=True
         )
         logging.info(f"target.service restarted successfully")
-        tgt_restart_done = True
+        # one-time initialization
+        state["initialized"] = True
+        save_state()
 
     except subprocess.CalledProcessError as e:
         logging.error(f"Error in restarting target.service: {e.stderr}")

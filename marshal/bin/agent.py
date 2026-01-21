@@ -404,15 +404,12 @@ def main():
 
         logging.info("END SCAN")
 
-        lio.first_scan_complete = True
+        lio.load_state()
 
-        tgtp_status = lio.get_tgtp_status(target_iqn)
-        if tgtp_status != 'True':
-            logging.info(f"Target port is disabled, enabling the same")
-            lio.enable_target(target_iqn)
-
-        # Restart the target service only once after the 1st SCAN
-        if lio.first_scan_complete and not lio.tgt_restart_done:
+        # Restart the target service only once after the first SCAN is complete
+        if not lio.state["initialized"]:
+            # one-time initialization
+            logging.info(f"Restart target.service")
             lio.tgt_service_restart()
 
         time.sleep(config.KV['SCAN_FREQUENCY'])
